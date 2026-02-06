@@ -1,0 +1,11 @@
+.env
+.env.*
+env.sh
+reports
+node_modules
+.DS_Store
+.envd
+.envp
+.envs
+.envg
+package-lock.json
