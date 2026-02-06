@@ -1,139 +1,147 @@
-# rll-ai-chatbot
-rll-ai-chatbot
+## mocking-api
 
+Simple Node.js API to demonstrate a **race condition** in a phone-credit (pulsa) purchase flow using a balance stored in an in‑memory "database".
 
+This project contains:
+- **API Server** (`app.js`) built with `Express`
+- **Load / race test script** (`race-condition-test.js`) using `k6` to simulate 2 devices purchasing at the same time
 
-## Running Application on Docker Container
+---
 
-This application you can run on docker container.
+### Tech stack
 
-### Prerequisite :
-* Docker
-* OS Linux Docker Image, 
-* Golang version 1.14 or latest
+- **Node.js** (Express)
+- **npm**
+- **k6** (for load/race testing)
 
-### Environment Variable available
+---
 
+### Endpoints
 
-### build docker image
+- **GET `/balance`**
+  - Returns the current user balance.
+  - Example response:
+    ```json
+    {
+      "userId": "andi",
+      "balance": 100000
+    }
+    ```
+
+- **POST `/purchase`**
+  - Request body (JSON):
+    ```json
+    {
+      "amount": 5000,
+      "device": "HP_ANDI"
+    }
+    ```
+  - Behaviour:
+    - Read current balance
+    - Wait 2 seconds (simulate processing)
+    - Check whether the balance is sufficient
+    - Deduct the balance and return the result
+
+Example curl:
+
 ```bash
-$ docker build -t {IMAGE_NAME} -f deployment/dockerfiles/dockerfile--dev .
-# example
-$ docker build -t rll-ai-chatbot -f deployment/dockerfiles/dockerfile-dev .
+curl -X POST http://localhost:3000/purchase \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 5000, "device": "HP_ANDI"}'
 ```
 
-### run docker container after build the image
-```bash
-# example run http serve:
-$ docker run -i --name rll-ai-chatbot -p 8081:8081 -t rll-ai-chatbot
+---
 
+### Prerequisites
+
+- Node.js v16+ (recommended)
+- npm
+- `k6` installed globally (to run `race-condition-test.js`)
+  - Install k6: see the official docs `https://k6.io/docs/get-started/installation/`
+
+---
+
+### Setup & run the project
+
+#### 1. Clone the repository
+
+```bash
+git clone git@github.com-tonyrsb:tonyrsb/mocking-api.git
+cd mocking-api
 ```
 
+> Or adjust to the repository URL you are actually using.
 
-## Running on your local machine
+#### 2. Install dependencies
 
-Linux or MacOS
-
-## Installation guide
-#### 1. install go version 1.14.2     
 ```bash
-# please read this link installation guide of go
-# https://golang.org/doc/install
+npm install
 ```
 
-#### 2. Create directory workspace    
+#### 3. Run the server (normal mode)
+
 ```bash
-run command below: 
-mkdir $HOME/go
-mkdir $HOME/go/src
-mkdir $HOME/go/pkg
-mkdir $HOME/go/bin
-mkdir -p $HOME/go/src/github.com/ralali/rll-ai-chatbot
-chmod -R 775 $HOME/go
-cd $HOME/go/src/github.com/ralali
-export GOPATH=$HOME/go
-```    
-```bash
-# edit bash profile in $HOME/.bash_profile        
-# add below to new line in file .bash_profile         
-    PATH=$PATH:$HOME/bin:$HOME/go/bin
-    export PATH  
-    export GOPATH=$HOME/go 
-# run command :
-source $HOME/.bash_profile
+npm start
 ```
 
-#### 3. Build the application    
+The server will be available at:
+
+```text
+http://localhost:3000
+```
+
+#### 4. Run the server (development mode, auto-restart)
+
 ```bash
-# run command :
-cd $HOME/go/src/github.com/ralali/rll-ai-chatbot
-git clone -b development https://github.com/ralali/rll-ai-chatbot .
-cd $HOME/go/src/github.com/ralali/rll-ai-chatbot
-go mod tidy && go mod download && go mod vendor
-cp config/app.yaml.tpl config/app.yaml     
-# edit config/app.yaml with server environtment
-go build
-
-# run application after build or create on supervisord 
-./rll-ai-chatbot serve-http
+npm run dev
 ```
 
+Endpoints you can try:
 
-### 4. Health check Route PATH
+- Check balance:
+  ```bash
+  curl http://localhost:3000/balance
+  ```
+- Try a manual purchase:
+  ```bash
+  curl -X POST http://localhost:3000/purchase \
+    -H "Content-Type: application/json" \
+    -d '{"amount": 5000, "device": "HP_ANDI"}'
+  ```
+
+---
+
+### Running the race condition simulation (k6)
+
+The `race-condition-test.js` script simulates:
+- **2 VUs (virtual users)** acting as 2 devices:
+  - VU 1: `amount = 5000`, `device = "HP_ANDI"`
+  - VU 2: `amount = 10000`, `device = "HP_ADIK"`
+- Each performs 2 iterations (`iterations: 2`)
+
+Make sure the server is running at `http://localhost:3000`, then run:
+
 ```bash
-{{host}}/in/health
+npm run test:race
 ```
 
+The command above is equivalent to:
 
-#### Postman Collection
-```go
-```
-
-### Database Migration
-migration up
 ```bash
-go run main.go db:migrate up
+k6 run race-condition-test.js
 ```
 
-migration down
-```bash
-go run main.go db:migrate down
-```
+Watch the logs in the Node.js terminal; you will see the sequence:
+- Each device reads the current balance
+- 2-second delay
+- Balance is deducted and written back
 
-migration reset
-```bash
-go run main.go db:migrate reset
-```
+This illustrates the **race condition** caused by the shared state (`userAccount.balance`) being accessed in parallel without any locking/transaction mechanism.
 
-migration reset
-```bash
-go run main.go db:migrate reset
-```
+---
 
-migration redo
-```bash
-go run main.go db:migrate redo
-```
+### Additional notes
 
-migration status
-```bash
-go run main.go db:migrate status
-```
+- User data and balance are stored only in memory (`userAccount` in `app.js`), so every time you restart the server the balance is reset to the initial value.
+- This project is for learning purposes only (race conditions / concurrency issues); **do not** use it as-is in production.
 
-create migration table
-```bash
-go run main.go db:migrate create {table-name} sql
-
-# example
-go run main.go db:migrate create users sql
-```
-
-to show all command
-```bash
-go run main.go db:migrate
-```
-
-## run docker compose on your local machine
-```bash
-docker-compose -f deployment/docker-compose.yaml --project-directory . up -d --build
-```

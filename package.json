@@ -1,0 +1,22 @@
+{
+  "name": "mocking-api",
+  "version": "1.0.0",
+  "description": "Race Condition Mocking API",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test:race": "k6 run race-condition-test.js",
+    "dev": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com-tonyrsb:tonyrsb/mocking-api.git"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
