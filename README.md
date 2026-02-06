@@ -1,4 +1,4 @@
-## mocking-api
+## race-condition-mocking-api
 
 Simple Node.js API to demonstrate a **race condition** in a phone-credit (pulsa) purchase flow using a balance stored in an in‑memory "database".
 
